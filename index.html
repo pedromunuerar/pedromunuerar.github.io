@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TechVision</title>
+<style>
+:root{
+  --bg:#0e0e12;
+  --muted:#d1d1d6;
+  --accent1:#4cc9f0;
+  --accent2:#4361ee;
+  --header-h:72px;
+  --max-w:1200px;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  font-family:'Segoe UI',Roboto,system-ui,-apple-system,'Helvetica Neue',Arial;
+  background:var(--bg);
+  color:#f5f5f7;
+  line-height:1.6;
+  padding-top:var(--header-h); /* reserva espacio para el header fijo */
+}
+
+.header{
+  position:fixed; top:0; left:0; right:0;
+  height:var(--header-h);
+  background:rgba(15,15,20,0.9);
+  display:flex; align-items:center; justify-content:center;
+  z-index:1000;
+  border-bottom:1px solid rgba(255,255,255,0.02);
+}
+.header-inner{
+  width:100%; max-width:var(--max-w); padding:0 5%;
+  display:flex; align-items:center; justify-content:space-between;
+}
+.logo{font-weight:700; color:var(--accent1); font-size:1.25rem}
+nav{display:flex; gap:1rem; align-items:center; flex-wrap:wrap; justify-content:flex-end; min-width:0}
+nav a, nav button{
+  text-decoration:none; color:inherit; background:none; border:none; cursor:pointer;
+  font-weight:500; padding:0.35rem 0.5rem; white-space:nowrap;
+}
+nav a:hover, nav button:hover{ color:var(--accent1)}
+.lang-toggle{border-radius:6px; padding:0.35rem 0.6rem; background:transparent; border:1px solid rgba(255,255,255,0.04)}
+
+.hero{
+  min-height:calc(100vh - var(--header-h));
+  display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center;
+  padding:2rem 5%;
+  background:linear-gradient(135deg,#1e1e2e,#0e0e12);
+}
+.hero h1{font-size:clamp(1.8rem,4vw,3rem);
+  background:linear-gradient(90deg,var(--accent1),var(--accent2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;margin:0 0 1rem;
+}
+.hero p{max-width:700px;color:var(--muted);margin:0}
+.section{padding:4rem 5%; text-align:center}
+.section h2{color:var(--accent1); font-size:clamp(1.3rem,2.4vw,2rem); margin-bottom:1.5rem}
+.cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:1.5rem; max-width:1200px; margin:0 auto}
+.card{background:#1a1a22;padding:1.6rem;border-radius:12px;box-shadow:0 6px 18px rgba(0,0,0,0.35);transition:transform .24s ease}
+.card:hover{transform:translateY(-6px)}
+footer{background:#0a0a0f;color:#888;text-align:center;padding:2rem;font-size:.9rem}
+
+/* small screens: reduce header padding and center nav below logo if wrapping */
+@media (max-width:640px){
+  .header-inner{padding:0 3%}
+  nav{justify-content:flex-end; gap:0.5rem}
+  .logo{font-size:1.05rem}
+}
+
+/* language helpers */
+[data-lang="en"] { display: none; }
+.lang-en [data-lang="en"] { display: inline; }
+.lang-en [data-lang="es"] { display: none; }
+</style>
+</head>
+<body>
+<header class="header">
+  <div class="header-inner">
+    <div class="logo">TechVision</div>
+    <nav>
+      <a href="#servicios"><span data-lang="es">Servicios</span><span data-lang="en">Services</span></a>
+      <a href="#proyectos"><span data-lang="es">Proyectos</span><span data-lang="en">Projects</span></a>
+      <a href="#contacto"><span data-lang="es">Contacto</span><span data-lang="en">Contact</span></a>
+      <button id="langToggle" class="lang-toggle">EN/ES</button>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+    <div id="three-container"></div>
+    <h1>
+      <span data-lang="es">Visión Artificial · UAV · Deep Learning</span>
+      <span data-lang="en">Computer Vision · UAV · Deep Learning</span>
+    </h1>
+    <p>
+      <span data-lang="es">Impulsamos la innovación tecnológica integrando sistemas inteligentes para resolver los desafíos del mañana.</span>
+      <span data-lang="en">We drive technological innovation by integrating intelligent systems to solve tomorrow's challenges.</span>
+    </p>
+  </section>
+
+<section class="section" id="servicios">
+  <h2><span data-lang="es">Áreas de Expertise</span><span data-lang="en">Areas of Expertise</span></h2>
+  <div class="cards">
+    <div class="card">
+      <h3>Computer Vision</h3>
+      <p><span data-lang="es">Soluciones avanzadas en análisis de imágenes y video en tiempo real.</span><span data-lang="en">Advanced solutions for real-time image and video analysis.</span></p>
+    </div>
+    <div class="card">
+      <h3>UAV Systems</h3>
+      <p><span data-lang="es">Integración de vehículos aéreos no tripulados para aplicaciones críticas.</span><span data-lang="en">Integration of unmanned aerial vehicles for critical applications.</span></p>
+    </div>
+    <div class="card">
+      <h3>Deep Learning</h3>
+      <p><span data-lang="es">Modelos de inteligencia artificial para predicción, detección y automatización.</span><span data-lang="en">Artificial intelligence models for prediction, detection, and automation.</span></p>
+    </div>
+    <div class="card">
+      <h3><span data-lang="es">Integración de Sistemas</span><span data-lang="en">Systems Integration</span></h3>
+      <p><span data-lang="es">Diseño de arquitecturas robustas que conectan hardware y software.</span><span data-lang="en">Design of robust architectures connecting hardware and software.</span></p>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="proyectos">
+  <h2><span data-lang="es">Proyectos Destacados</span><span data-lang="en">Featured Projects</span></h2>
+  <div class="cards">
+    <div class="card">
+      <h3><span data-lang="es">Monitoreo Agrícola</span><span data-lang="en">Agricultural Monitoring</span></h3>
+      <p><span data-lang="es">Uso de UAV y visión por computadora para optimizar la producción agrícola.</span><span data-lang="en">Use of UAV and computer vision to optimize agricultural production.</span></p>
+    </div>
+    <div class="card">
+      <h3><span data-lang="es">Seguridad Inteligente</span><span data-lang="en">Smart Security</span></h3>
+      <p><span data-lang="es">Detección automática de anomalías en sistemas de vigilancia urbana.</span><span data-lang="en">Automatic anomaly detection in urban surveillance systems.</span></p>
+    </div>
+    <div class="card">
+      <h3><span data-lang="es">Industria 4.0</span><span data-lang="en">Industry 4.0</span></h3>
+      <p><span data-lang="es">Automatización de procesos industriales mediante deep learning.</span><span data-lang="en">Industrial process automation through deep learning.</span></p>
+    </div>
+  </div>
+</section>
+
+<footer id="contacto">
+  <span data-lang="es">© 2025 TechVision · Innovación en Visión Artificial y Sistemas Inteligentes</span>
+  <span data-lang="en">© 2025 TechVision · Innovation in Computer Vision and Intelligent Systems</span>
+</footer>
+
+<script>
+const toggleBtn = document.getElementById('langToggle');
+toggleBtn.addEventListener('click', () => {
+  document.body.classList.toggle('lang-en');
+});
+</script>
+
+<!-- Three.js -->
+
+<script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+      }
+    }
+</script>
+
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+const container = document.getElementById('three-container');
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+camera.position.set(3, 2, 5);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setSize(container.clientWidth, container.clientHeight);
+container.appendChild(renderer.domElement);
+
+// Luz
+const light = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
+scene.add(light);
+
+// Controles
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.enableZoom = false; // scroll sigue funcionando normal
+controls.enablePan = false;
+
+// Modelo 3D
+const loader = new GLTFLoader();
+loader.load('drone.glb', gltf => {
+  const model = gltf.scene;
+  model.scale.set(2, 2, 2);
+  scene.add(model);
+}, undefined, error => { console.error(error); });
+
+// Responsivo
+window.addEventListener('resize', () => {
+  camera.aspect = container.clientWidth / container.clientHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(container.clientWidth, container.clientHeight);
+});
+
+// Animación
+function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene, camera);
+}
+animate();
+</script>
+
+<style>
+  #three-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    pointer-events: auto; /* permite rotar con mouse */
+  }
+  .hero {
+    position: relative;
+    overflow: hidden;
+  }
+  .hero h1, .hero p {
+    position: relative;
+    z-index: 1;
+  }
+</style>
+</body>
+</html>
