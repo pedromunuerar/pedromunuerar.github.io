@@ -1,0 +1,1132 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulador Rentas Mínimas — Línea Base v1.1</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #f1f5f9; --card: #ffffff; --border: #e2e8f0; --text: #0f172a; --muted: #64748b;
+    --primary: #2563eb; --primary-dark: #1d4ed8;
+    --good: #16a34a; --warn: #f59e0b; --bad: #dc2626;
+    --shadow: 0 1px 3px rgba(15,23,42,.06), 0 1px 2px rgba(15,23,42,.04);
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.5; padding: 20px; }
+  header { display: flex; flex-wrap: wrap; gap: 16px; align-items: center;
+    justify-content: space-between; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 2px solid var(--border); }
+  header h1 { font-size: 22px; font-weight: 700; }
+  header .subtitle { color: var(--muted); font-size: 13px; }
+  .header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  button { font: inherit; cursor: pointer; border: 1px solid var(--border);
+    background: var(--card); color: var(--text); padding: 8px 14px; border-radius: 8px;
+    font-weight: 500; transition: all .15s; }
+  button:hover { border-color: var(--primary); color: var(--primary); }
+  button.btn-primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+  button.btn-primary:hover { background: var(--primary-dark); }
+  button.btn-danger { color: var(--bad); }
+  button.btn-danger:hover { border-color: var(--bad); }
+
+  .layout { display: grid; grid-template-columns: 380px 1fr; gap: 20px; margin-bottom: 20px; }
+  @media (max-width: 1100px) { .layout { grid-template-columns: 1fr; } }
+
+  .panel { background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); }
+  .panel h2 { font-size: 15px; font-weight: 700; margin-bottom: 12px;
+    color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+
+  .input-group { margin-bottom: 18px; }
+  .input-group-title { font-size: 12px; font-weight: 700; color: var(--primary);
+    text-transform: uppercase; letter-spacing: .5px; margin-bottom: 8px;
+    padding-bottom: 4px; border-bottom: 1px solid var(--border); }
+  .input-row { margin-bottom: 12px; }
+  .input-header { display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 4px; font-size: 12.5px; }
+  .input-header label { color: var(--text); font-weight: 500; }
+  .input-value { display: flex; align-items: center; gap: 4px; }
+  .input-value input[type=number] { width: 90px; padding: 4px 6px; font: inherit; font-size: 12.5px;
+    text-align: right; border: 1px solid var(--border); border-radius: 6px; background: #f8fafc; }
+  .input-value input[type=number]:focus { outline: 2px solid var(--primary); }
+  .input-value .unit { color: var(--muted); font-size: 11px; min-width: 38px; }
+  input[type=range] { width: 100%; -webkit-appearance: none; appearance: none;
+    height: 6px; border-radius: 3px; background: #cbd5e1; cursor: pointer; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px;
+    border-radius: 50%; background: var(--primary); cursor: pointer; border: 2px solid #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,.2); }
+  .checkbox-row { display: flex; align-items: center; gap: 8px;
+    padding: 8px 0; cursor: pointer; font-size: 13px; }
+  .checkbox-row input { width: 16px; height: 16px; cursor: pointer; }
+
+  .kpi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+  @media (max-width: 700px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+  .kpi { background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; }
+  .kpi.clickable { cursor: pointer; transition: border-color .15s; }
+  .kpi.clickable:hover { border-color: var(--primary); }
+  .kpi-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 2px; }
+  .kpi-value { font-size: 22px; font-weight: 700; line-height: 1.1; }
+  .kpi-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .kpi.good .kpi-value { color: var(--good); }
+  .kpi.warn .kpi-value { color: var(--warn); }
+  .kpi.bad .kpi-value { color: var(--bad); }
+
+  .binding-badge { display: inline-block; padding: 4px 10px; border-radius: 999px;
+    font-size: 12px; font-weight: 600; margin-bottom: 12px; }
+  .binding-badge.presupuesto { background: #dbeafe; color: #1d4ed8; }
+  .binding-badge.capacidad { background: #fef3c7; color: #92400e; }
+  .binding-badge.ntu { background: #fee2e2; color: #991b1b; }
+  .binding-badge.ninguna { background: #dcfce7; color: #166534; }
+
+  .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 800px) { .charts-grid { grid-template-columns: 1fr; } }
+  .chart-card { background: #f8fafc; border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px; height: 240px; position: relative; }
+  .chart-card h3 { font-size: 12px; color: var(--muted); font-weight: 600;
+    margin-bottom: 6px; text-transform: uppercase; letter-spacing: .5px; }
+  .chart-card canvas { max-height: 195px; }
+
+  .snapshots-header { display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th, td { padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  th { background: #f1f5f9; font-weight: 600; color: var(--muted);
+    text-transform: uppercase; font-size: 10.5px; letter-spacing: .5px; position: sticky; top: 0; }
+  td:first-child, th:first-child { text-align: left; }
+  tbody tr:hover { background: #f8fafc; }
+  .empty-state { padding: 24px; text-align: center; color: var(--muted); }
+  .del-btn { padding: 2px 8px; font-size: 11px; color: var(--bad); border: 1px solid var(--border); background: #fff; }
+  .del-btn:hover { border-color: var(--bad); }
+
+  /* ═══ NUEVO: "?" junto a variables ═══ */
+  .ficha-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 16px; height: 16px; border-radius: 50%;
+    background: #e2e8f0; color: var(--muted);
+    font-size: 10px; font-weight: 700; cursor: pointer;
+    margin-left: 6px; vertical-align: middle; user-select: none;
+    transition: all .15s;
+  }
+  .ficha-btn:hover { background: var(--primary); color: #fff; transform: scale(1.1); }
+
+  /* ═══ NUEVO: Drawer de documentación ═══ */
+  .drawer-overlay {
+    position: fixed; inset: 0; background: rgba(15,23,42,.5);
+    opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 100;
+  }
+  .drawer-overlay.open { opacity: 1; pointer-events: auto; }
+  .drawer {
+    position: fixed; top: 0; right: 0; bottom: 0;
+    width: min(820px, 96vw); background: var(--card);
+    box-shadow: -8px 0 24px rgba(15,23,42,.15); z-index: 101;
+    transform: translateX(100%); transition: transform .25s cubic-bezier(.4,0,.2,1);
+    display: flex; flex-direction: column;
+  }
+  .drawer.open { transform: translateX(0); }
+  .drawer-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 18px; border-bottom: 1px solid var(--border);
+  }
+  .drawer-tabs {
+    display: flex; gap: 4px; padding: 8px 18px 0;
+    border-bottom: 1px solid var(--border); overflow-x: auto;
+  }
+  .drawer-tab {
+    padding: 8px 14px; border: none; background: none; font-weight: 500;
+    font-size: 13px; color: var(--muted); cursor: pointer;
+    border-bottom: 2px solid transparent; border-radius: 0; white-space: nowrap;
+  }
+  .drawer-tab:hover { color: var(--text); }
+  .drawer-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+  .drawer-search { padding: 10px 18px; border-bottom: 1px solid var(--border); }
+  .drawer-search input {
+    width: 100%; padding: 6px 10px; border: 1px solid var(--border);
+    border-radius: 6px; font: inherit; font-size: 13px;
+  }
+  .drawer-body { display: grid; grid-template-columns: 260px 1fr; flex: 1; overflow: hidden; }
+  .drawer-list { border-right: 1px solid var(--border); overflow-y: auto; padding: 8px; background: #f8fafc; }
+  .drawer-list-item {
+    padding: 8px 10px; border-radius: 6px; cursor: pointer;
+    font-size: 12.5px; margin-bottom: 2px;
+  }
+  .drawer-list-item:hover { background: #e2e8f0; }
+  .drawer-list-item.active { background: var(--primary); color: #fff; }
+  .drawer-content { overflow-y: auto; padding: 18px 22px; }
+  .drawer-content h3 { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+  .drawer-content h3 code { font-size: 12px; color: var(--muted); font-weight: 400; }
+  .drawer-content .ficha-meta {
+    font-size: 11px; color: var(--muted); margin-bottom: 16px;
+    display: flex; gap: 12px; flex-wrap: wrap;
+  }
+  .drawer-content .ficha-meta span { display: flex; gap: 4px; }
+  .drawer-content .ficha-meta strong { color: var(--text); text-transform: uppercase; letter-spacing: .3px; }
+  .ficha-section { margin-bottom: 16px; }
+  .ficha-section h4 {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .5px; color: var(--primary); margin-bottom: 4px;
+  }
+  .ficha-section p { font-size: 13px; line-height: 1.55; color: #334155; }
+  .ficha-section ul { font-size: 13px; padding-left: 18px; line-height: 1.55; color: #334155; }
+  .ficha-expresion {
+    background: #0f172a; color: #e2e8f0; padding: 12px 14px;
+    border-radius: 8px; font-family: 'SF Mono', Menlo, monospace;
+    font-size: 12px; overflow-x: auto; margin-bottom: 16px;
+    white-space: pre-wrap; word-break: break-word;
+  }
+  .ficha-empty { padding: 40px 20px; text-align: center; color: var(--muted); }
+  .ficha-pending { background: #fef3c7; color: #92400e; padding: 6px 10px; border-radius: 6px;
+    font-size: 12px; margin-bottom: 12px; display: inline-block; }
+  @media (max-width: 700px) {
+    .drawer-body { grid-template-columns: 1fr; }
+    .drawer-list { border-right: none; border-bottom: 1px solid var(--border); max-height: 40vh; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Simulador de Rentas Mínimas — Línea Base</h1>
+    <div class="subtitle">Murcia · Modelo de fricción institucional · v1.1</div>
+  </div>
+  <div class="header-actions">
+    <button onclick="aplicarPreset('murcia')" title="Valores por defecto (Murcia)">🏠 Murcia hoy</button>
+    <button onclick="aplicarPreset('ideal')" title="Sistema sin fricción">✅ Sistema ideal</button>
+    <button onclick="aplicarPreset('colapso')" title="Estado institucional degradado">🏴 Colapso (Ucrania)</button>
+    <button onclick="abrirDrawer('entradas')" title="Ver documentación del modelo">📖 Documentación</button>
+    <button class="btn-primary" onclick="guardarSnapshot()">📸 Guardar instantánea</button>
+  </div>
+</header>
+
+<div class="layout">
+  <section class="panel">
+    <h2>⬇ Entradas</h2>
+    <div id="inputs-container"></div>
+  </section>
+  <section class="panel">
+    <h2>⬆ Salidas</h2>
+    <div id="binding-badge" class="binding-badge ninguna">Restricción: —</div>
+    <div id="kpi-grid" class="kpi-grid"></div>
+    <div class="charts-grid">
+      <div class="chart-card"><h3>Embudo de atención (personas)</h3><canvas id="chart-embudo"></canvas></div>
+      <div class="chart-card"><h3>Presupuesto (€/año)</h3><canvas id="chart-presupuesto"></canvas></div>
+      <div class="chart-card"><h3>NTU vs Cobertura</h3><canvas id="chart-ntu"></canvas></div>
+      <div class="chart-card"><h3>Sensibilidad: NTU y beneficiarios vs nº funcionarios</h3><canvas id="chart-sensibilidad"></canvas></div>
+    </div>
+  </section>
+</div>
+
+<section class="panel">
+  <div class="snapshots-header">
+    <h2>📸 Instantáneas guardadas <span id="snap-count" style="color:var(--muted);font-weight:400;text-transform:none;">(0)</span></h2>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button onclick="descargarCSV()">⬇ Descargar CSV</button>
+      <button onclick="copiarTablaHTML()">📋 Copiar tabla</button>
+      <button class="btn-danger" onclick="borrarTodas()">🗑 Borrar todas</button>
+    </div>
+  </div>
+  <div class="table-wrap">
+    <table id="snapshots-table"><thead></thead><tbody></tbody></table>
+  </div>
+</section>
+
+<!-- ═══ NUEVO: Drawer de documentación ═══ -->
+<div class="drawer-overlay" id="drawer-overlay" onclick="cerrarDrawer()"></div>
+<aside class="drawer" id="drawer" role="dialog" aria-labelledby="drawer-title">
+  <div class="drawer-header">
+    <strong id="drawer-title" style="font-size:15px;">📖 Documentación del modelo</strong>
+    <button onclick="cerrarDrawer()" style="padding:4px 10px;" aria-label="Cerrar">✕</button>
+  </div>
+  <div class="drawer-tabs">
+    <button class="drawer-tab active" data-tab="entradas">Variables de entrada</button>
+    <button class="drawer-tab" data-tab="salidas">Variables de salida</button>
+    <button class="drawer-tab" data-tab="formulas">Fórmulas</button>
+  </div>
+  <div class="drawer-search">
+    <input type="text" id="drawer-search" placeholder="Buscar por nombre o clave interna..." oninput="onDrawerSearch(this.value)">
+  </div>
+  <div class="drawer-body">
+    <div class="drawer-list" id="drawer-list"></div>
+    <div class="drawer-content" id="drawer-content">
+      <div class="ficha-empty">Selecciona un elemento de la lista para ver su ficha.</div>
+    </div>
+  </div>
+</aside>
+
+<script>
+/* ============================================================
+   0. FICHAS DE DOCUMENTACIÓN  (fuente única de verdad)
+   ============================================================ */
+const FICHAS = {
+
+  entradas: {
+    poblacion_total: {
+      nombre: 'Población total',
+      meta: {tipo:'Entrada', grupo:'Contexto', unidad:'personas', rango:'10.000 – 5.000.000', default:'1.500.000'},
+      conceptual: 'Número de residentes en la jurisdicción bajo análisis.',
+      operativa: 'Parámetro escalar que fija el tamaño del universo poblacional. No se modela estructura de edad ni composición del hogar.',
+      justificacion: 'Cifra oficial del padrón continuo del INE para la Región de Murcia (2024 ≈ 1,53 M hab.).',
+      limitaciones: 'No desagrega por edad, nacionalidad ni composición del hogar. Un modelo más fino necesitaría una matriz de hogares.',
+      falsacion: 'Si la población real difiere >5% del valor usado, todas las salidas absolutas (beneficiarios, presupuesto) quedan sesgadas proporcionalmente.'
+    },
+    tasa_pobreza: {
+      nombre: 'Tasa de pobreza',
+      meta: {tipo:'Entrada', grupo:'Contexto', unidad:'%', rango:'0 – 60', default:'22,6'},
+      conceptual: 'Porcentaje de la población bajo el umbral de pobreza relativa (60% de la mediana de ingresos).',
+      operativa: 'Multiplicador directo sobre poblacion_total para obtener poblacion_elegible. Se asume que todo hogar bajo el umbral es elegible.',
+      justificacion: 'Se usa tasa de pobreza relativa, no AROPE, porque el umbral de elegibilidad de las rentas mínimas se define sobre ingresos, no sobre carencia material. [PENDIENTE EQUIPO: fijar año y fuente exacta.]',
+      limitaciones: 'Asume homogeneidad interna: no todos los hogares bajo el umbral son elegibles (patrimonio, edad, residencia). El modelo sobreestima la población elegible.',
+      falsacion: 'Si el ratio elegibles/beneficiarios reales en Murcia no es del orden de 10:1, la tasa está mal calibrada.'
+    },
+    importe_prestacion_base: {
+      nombre: 'Importe de prestación base',
+      meta: {tipo:'Entrada', grupo:'Contexto', unidad:'€/mes', rango:'0 – 2.000', default:'480'},
+      conceptual: 'Cuantía mensual que recibe un beneficiario individual tipo.',
+      operativa: 'Se multiplica por meses_medios_percibidos para obtener el coste anual por beneficiario.',
+      justificacion: '80% del IPREM mensual (2024: 600 €) = 480 €. Cuantía de la RBI murciana para un individuo. [PENDIENTE EQUIPO: verificar con BORM 2024.]',
+      limitaciones: 'No modela escala por unidad de convivencia (el sistema real paga más a hogares grandes). Subestima el coste real por hogar.',
+      falsacion: 'Comparar importe × meses × beneficiarios con el presupuesto ejecutado real de Murcia. Si difiere >20%, hay un parámetro mal puesto.'
+    },
+    meses_medios_percibidos: {
+      nombre: 'Meses medios percibidos al año',
+      meta: {tipo:'Entrada', grupo:'Contexto', unidad:'meses', rango:'0,5 – 12', default:'3,5'},
+      conceptual: 'Número medio de meses al año que un beneficiario recibe efectivamente la prestación.',
+      operativa: 'Multiplica al importe mensual para obtener el coste anual por beneficiario. Captura la rotación (entradas y salidas del sistema).',
+      justificacion: '[PENDIENTE EQUIPO — ¿por qué 3,5 y no 12? Hipótesis: alta rotación en rentas mínimas. Cruzar con datos de AIReF sobre duración media del IMV o con memoria de la RBI murciana.]',
+      limitaciones: 'Es un promedio; no modela distribución de duraciones ni reincidencia.',
+      falsacion: 'Si la duración media real observada en Murcia es >6 meses, el coste anual por beneficiario está subestimado a la mitad.'
+    },
+    canal_telematico: {
+      nombre: 'Canal telemático disponible',
+      meta: {tipo:'Entrada (booleana)', grupo:'Canal', unidad:'Sí/No', default:'Sí'},
+      conceptual: 'Existencia de un canal digital para solicitar y gestionar la prestación.',
+      operativa: 'Si es false, suma +0,10 al factor_canal y, junto con canal_presencial=false, suma +0,30 (colapso de canales).',
+      justificacion: 'La CARM tiene sede electrónica operativa.',
+      limitaciones: 'La existencia del canal no garantiza su usabilidad para población vulnerable (brecha digital). El modelo lo captura solo indirectamente vía complejidad_solicitud.',
+      falsacion: 'Si en una provincia sin canal telemático el NTU observado no sube respecto a una con canal, el parámetro +0,10 está mal calibrado.'
+    },
+    canal_presencial: {
+      nombre: 'Canal presencial disponible',
+      meta: {tipo:'Entrada (booleana)', grupo:'Canal', unidad:'Sí/No', default:'Sí'},
+      conceptual: 'Existencia de atención presencial (oficinas, trabajadores sociales) para solicitar y tramitar.',
+      operativa: 'Si es false, suma +0,15 al factor_canal (o +0,30 si tampoco hay telemático).',
+      justificacion: 'Murcia cuenta con red de servicios sociales municipales.',
+      limitaciones: 'No modela la dispersión geográfica ni el tiempo de desplazamiento.',
+      falsacion: 'En provincias con red presencial densa vs. dispersa, el NTU debería diferir. Si no lo hace, el parámetro es irrelevante.'
+    },
+    complejidad_solicitud: {
+      nombre: 'Complejidad de la solicitud',
+      meta: {tipo:'Entrada (índice 1-5)', grupo:'Canal', unidad:'índice', rango:'1 – 5', default:'3'},
+      conceptual: 'Fricción burocrática del proceso de solicitud (nº de documentos, pasos, verificaciones, necesidad de asistencia).',
+      operativa: 'Suma (complejidad - 1) × 0,05 al factor_canal. En el índice de fricción, aporta ((complejidad-1)/4) × 20 puntos.',
+      justificacion: '[PENDIENTE EQUIPO — asignar nivel a la RBI murciana y justificar. Definir qué significa cada nivel 1-5 con el formulario real.]',
+      limitaciones: 'Es ordinal, no cardinal. La distancia entre 1 y 2 no es necesariamente la misma que entre 4 y 5.',
+      falsacion: 'Si dos provincias con la misma complejidad declarada tienen NTU muy distintos, la variable no está capturando lo relevante.'
+    },
+    tasa_ntu_base: {
+      nombre: 'NTU estructural base',
+      meta: {tipo:'Entrada', grupo:'Canal', unidad:'%', rango:'0 – 95', default:'55'},
+      conceptual: 'Porcentaje de hogares elegibles que no solicitan o no reciben la prestación incluso en condiciones institucionales normales (sin saturación, sin colapso).',
+      operativa: 'Es la base sobre la que se suman factor_canal, factor_saturacion y factor_espera. Se ajusta además por (1 - factor_estado) × 0,40 cuando el Estado se degrada.',
+      justificacion: '55% es la estimación de AIReF para el IMV. Para perfiles concretos en Murcia se ha reportado hasta 83%, pero ese es el NTU observado (que incluye saturación), no el estructural.',
+      limitaciones: 'El NTU estructural es difícil de separar del observado. El 55% es una estimación, no una medición directa.',
+      falsacion: 'Si en un sistema con canal perfecto (complejidad=1, sin saturación, estado=100%) el NTU observado sigue siendo >10%, entonces el NTU estructural base de 55% está mal: hay factores no modelados.'
+    },
+    num_funcionarios: {
+      nombre: 'Número de funcionarios',
+      meta: {tipo:'Entrada', grupo:'Capacidad', unidad:'personas', rango:'1 – 5.000', default:'100'},
+      conceptual: 'Personas dedicadas a tiempo completo a tramitar, verificar y controlar expedientes de la prestación.',
+      operativa: 'Multiplicado por horas_por_funcionario_mes y dividido por horas_por_expediente, determina la capacidad_tramitacion_mes.',
+      justificacion: '[PENDIENTE EQUIPO — estimar nº de trabajadores sociales / tramitadores dedicados a RBI en Murcia. Puede obtenerse de memoria de la consejería o de ratios nacionales.]',
+      limitaciones: 'No distingue entre perfiles (trabajador social vs. administrativo vs. inspector). No modela absentismo ni rotación.',
+      falsacion: 'Si con 100 funcionarios el sistema real de Murcia no satura (ratio < 1), entonces el valor está sobreestimado o horas_por_expediente subestimado.'
+    },
+    horas_por_funcionario_mes: {
+      nombre: 'Horas efectivas por funcionario al mes',
+      meta: {tipo:'Entrada', grupo:'Capacidad', unidad:'horas', rango:'10 – 200', default:'120'},
+      conceptual: 'Horas al mes que un funcionario dedica efectivamente a tramitar expedientes (no a reuniones, formación ni absentismo).',
+      operativa: 'Multiplica a num_func_efectivos para dar horas_capacidad_mes.',
+      justificacion: '[PENDIENTE EQUIPO — justificar. 120h ≈ 27h/semana efectivas, descontando vacaciones, bajas, formación, reuniones.]',
+      limitaciones: 'Es un promedio. No modela variación estacional ni picos de demanda.',
+      falsacion: 'Si la producción real de expedientes por funcionario en Murcia difiere >30% de la predicha, el parámetro está mal.'
+    },
+    horas_por_expediente: {
+      nombre: 'Horas por expediente',
+      meta: {tipo:'Entrada', grupo:'Capacidad', unidad:'horas', rango:'0,5 – 40', default:'8'},
+      conceptual: 'Tiempo medio de trabajo administrativo que consume un expediente, desde la solicitud hasta la resolución.',
+      operativa: 'Divide a horas_capacidad_mes para dar capacidad_tramitacion_mes.',
+      justificacion: '[PENDIENTE EQUIPO — estimar a partir de tiempos medios de tramitación de expedientes sociales. 8h ≈ 1 jornada.]',
+      limitaciones: 'No distingue entre expedientes simples y complejos. Un modelo v2 podría usar una distribución.',
+      falsacion: 'Si el tiempo medio real de tramitación no correlaciona con horas_por_expediente / (funcionarios × horas), el parámetro es irrelevante.'
+    },
+    coste_administrativo_por_expte_eur: {
+      nombre: 'Coste administrativo por expediente',
+      meta: {tipo:'Entrada', grupo:'Capacidad', unidad:'€', rango:'0 – 5.000', default:'200'},
+      conceptual: 'Coste monetario total de gestionar una solicitud, se conceda o no.',
+      operativa: 'Se multiplica por solicitudes_gestionadas_anyo para dar coste_administrativo_total. Luego se divide por beneficiarios para dar coste_admin_por_beneficiario.',
+      justificacion: '[PENDIENTE EQUIPO — este es un dato que AIReF o la IGAE podrían tener. Estimar coste medio de tramitar un expediente, incluyendo personal, sistemas, verificaciones.]',
+      limitaciones: 'No incluye costes de infraestructura (edificios, sistemas) ni costes de oportunidad del solicitante.',
+      falsacion: 'Si el coste administrativo total real de la RBI murciana (si se publicara) difiere >50% del predicho, el parámetro está mal.'
+    },
+    estado_institucional: {
+      nombre: 'Estado institucional (índice de estrés)',
+      meta: {tipo:'Entrada (índice 0-100)', grupo:'Capacidad', unidad:'%', rango:'0 – 100', default:'100'},
+      conceptual: 'Capacidad operativa del aparato institucional para ejecutar políticas. 100 = normal; 0 = colapso.',
+      operativa: 'Reduce num_funcionarios a num_func_efectivos (× estado/100). Además, eleva el NTU base en (1 - estado/100) × 0,40.',
+      justificacion: 'Variable de estrés. 100 para Murcia en situación normal. Para el escenario "colapso" se usa 20. Propuesta: normalizar índices tipo Worldwide Governance Indicators a 100. [PENDIENTE EQUIPO: definir construcción exacta.]',
+      limitaciones: 'Es una variable compuesta y subjetiva. No tiene una medición única aceptada. Es el punto más vulnerable del modelo ante un revisor.',
+      falsacion: 'Si en una región con estado_institucional bajo (medido con índices tipo WGI) el NTU no es más alto que en una con estado alto, la variable no funciona.'
+    },
+    presupuesto_total_prestaciones_eur: {
+      nombre: 'Presupuesto anual de prestaciones',
+      meta: {tipo:'Entrada', grupo:'Presupuesto', unidad:'€/año', rango:'0 – 500.000.000', default:'7.900.000'},
+      conceptual: 'Dinero asignado anualmente a pagar prestaciones (no incluye costes administrativos).',
+      operativa: 'Divide por coste_anual_por_beneficiario para dar beneficiarios_por_presupuesto. Es una de las tres restricciones del min().',
+      justificacion: 'Presupuesto de la RBI murciana (2024 ≈ 7,9 M€).',
+      limitaciones: 'No distingue entre presupuesto comprometido y ejecutado. No incluye fondos del IMV estatal.',
+      falsacion: 'Si el presupuesto ejecutado real difiere >15% del asignado, hay un problema de absorción que el modelo debería capturar (y lo hace vía absorcion).'
+    },
+    tiempo_medio_tramitacion_dias: {
+      nombre: 'Días medios de tramitación',
+      meta: {tipo:'Entrada', grupo:'Presupuesto', unidad:'días', rango:'1 – 365', default:'45'},
+      conceptual: 'Días que transcurren desde la solicitud hasta la resolución.',
+      operativa: 'Contribuye al factor_espera mediante min(0,15, (días/365) × 0,2).',
+      justificacion: '45 días es la media nacional reportada por AIReF. [PENDIENTE: ¿hay dato específico de Murcia?]',
+      limitaciones: 'No modela la varianza (hay casos de 6 meses y casos de 15 días). Un modelo v2 podría usar una distribución.',
+      falsacion: 'Si provincias con tiempos de tramitación muy distintos tienen NTU similares, la variable no está capturando el efecto disuasorio de la espera.'
+    }
+  },
+
+  salidas: {
+    poblacion_elegible: {
+      nombre: 'Población elegible',
+      meta: {tipo:'Salida (intermedia)', unidad:'personas', formula:'poblacion_total × tasa_pobreza / 100'},
+      conceptual: 'Número de personas que cumplen el criterio de elegibilidad (ingresos bajo umbral).',
+      operativa: 'Producto directo de poblacion_total y tasa_pobreza.',
+      limitaciones: 'Sobreestima la elegibilidad real (ver ficha de tasa_pobreza).',
+      equivalente: '[PENDIENTE EQUIPO — ¿quién es "elegible" en un sistema voluntario? Probablemente no haya umbral; habrá criterios de membresía o contribución.]'
+    },
+    ntu_observada: {
+      nombre: 'NTU observada',
+      meta: {tipo:'Salida (KPI principal)', unidad:'%', formula:'min(0.98, NTU_base_ajustada + factor_canal + factor_saturacion + factor_espera)'},
+      conceptual: 'Porcentaje de elegibles que no reciben efectivamente la prestación, incorporando toda la fricción del sistema.',
+      operativa: 'Suma aditiva de cuatro fuentes de fricción sobre el NTU base ajustado por estado, con techo del 98%.',
+      limitaciones: 'Asume aditividad e independencia de las fuentes de fricción. No modela interacciones multiplicativas.',
+      equivalente: 'Tasa de no-cobertura — NO conmensurable directamente porque en un sistema voluntario no hay "elegibles" exógenos. Declarar como no conmensurable y tratar cualitativamente.'
+    },
+    beneficiarios_efectivos: {
+      nombre: 'Beneficiarios efectivos',
+      meta: {tipo:'Salida', unidad:'personas', formula:'min(beneficiarios_potenciales, beneficiarios_por_presupuesto, beneficiarios_por_capacidad)'},
+      conceptual: 'Personas que efectivamente reciben la prestación tras aplicar todas las restricciones.',
+      operativa: 'El mínimo de las tres restricciones activas.',
+      limitaciones: 'Asume independencia de restricciones; no modela interacciones (más presupuesto sin capacidad no ayuda).',
+      equivalente: 'Nº de receptores activos de la red de ayuda mutua.'
+    },
+    cobertura_efectiva: {
+      nombre: 'Cobertura efectiva',
+      meta: {tipo:'Salida', unidad:'%', formula:'beneficiarios_efectivos / poblacion_elegible'},
+      conceptual: 'Fracción de la población elegible que recibe efectivamente la prestación. En Murcia ≈ 1,3%.',
+      operativa: 'Ratio directo.',
+      limitaciones: 'Depende de poblacion_elegible, que está sobreestimada.',
+      equivalente: 'Cobertura de la necesidad declarada por los miembros de la red.'
+    },
+    coste_admin_por_beneficiario: {
+      nombre: 'Coste administrativo por beneficiario',
+      meta: {tipo:'Salida', unidad:'€/beneficiario', formula:'coste_administrativo_total / max(1, beneficiarios_efectivos)'},
+      conceptual: 'Cuánto cuesta gestionar un beneficiario efectivo. Si es alto, el sistema gasta mucho en filtrar para dar a pocos.',
+      operativa: 'Ratio directo.',
+      limitaciones: 'No incluye costes de infraestructura.',
+      equivalente: 'Coste de operación de la red (validadores, curadores, gas, disputas) por receptor.'
+    },
+    indice_friccion: {
+      nombre: 'Índice de fricción',
+      meta: {tipo:'Salida (compuesta)', unidad:'0–100', formula:'min(100, NTU×50 + min(1,factor_sat×2.5)×30 + ((complejidad-1)/4)×20)'},
+      conceptual: 'Media ponderada de las tres fuentes de fricción: exclusión (NTU), saturación y complejidad burocrática.',
+      operativa: 'Suma ponderada con techos.',
+      limitaciones: 'Las ponderaciones (50/30/20) son una DECISIÓN DE DISEÑO, no una medición. Reportar como constructo narrativo.',
+      equivalente: 'Índice de fricción de red — componentes distintos (latencia, disponibilidad, disputas). NO conmensurable directamente.'
+    },
+    absorcion: {
+      nombre: 'Absorción presupuestaria',
+      meta: {tipo:'Salida', unidad:'%', formula:'presupuesto_ejecutado / presupuesto_total_prestaciones_eur'},
+      conceptual: 'Fracción del presupuesto asignado que se ejecuta. Si es baja, el sistema no puede gastar lo que tiene (señal de cuello de botella administrativo).',
+      operativa: 'Ratio directo.',
+      limitaciones: 'No distingue entre infraejecución por falta de demanda y por falta de capacidad.',
+      equivalente: 'Fracción del pool de contribuciones que se distribuye efectivamente.'
+    },
+    restriccion: {
+      nombre: 'Restricción activa',
+      meta: {tipo:'Salida (categórica)', valores:'presupuesto / capacidad / ntu / ninguna'},
+      conceptual: 'Cuál de las tres restricciones está determinando el número de beneficiarios efectivos. Es la métrica más útil para política: te dice qué atacar primero.',
+      operativa: 'Identifica cuál de las tres ramas del min() es la menor.',
+      limitaciones: 'Si en todos los casos reales la restricción es siempre la misma, la métrica es trivial.',
+      equivalente: 'Cuello de botella de red (liquidez / validadores / confianza).'
+    }
+  },
+
+  formulas: {
+    F1: {
+      nombre: 'Factor de estado',
+      meta: {tipo:'Heurístico', forma:'lineal'},
+      expresion: 'factor_estado = estado_institucional / 100',
+      justificacion: 'Se asume proporcionalidad directa entre capacidad institucional declarada y capacidad operativa efectiva. Es la hipótesis más simple y transparente.',
+      supuestos: ['La degradación es lineal.', 'No hay umbrales críticos ni efectos de red.'],
+      omite: ['Colapsos abruptos (un sistema puede funcionar al 80% y caer al 10% de golpe).', 'Histéresis.'],
+      sensibilidad: 'Alta. Es la variable del "modo degradación".',
+      falsacion: 'Si en un caso real de degradación (ej. Ucrania 2022) la relación entre índices de gobernanza y cobertura de pensiones no es aproximadamente lineal, la fórmula falla.'
+    },
+    F2: {
+      nombre: 'Funcionarios efectivos',
+      meta: {tipo:'Identidad'},
+      expresion: 'num_func_efectivos = num_funcionarios × factor_estado',
+      justificacion: 'La degradación institucional reduce el personal operativo disponible.',
+      supuestos: ['Todo el personal se ve afectado por igual.'],
+      omite: ['Que ciertos perfiles (ej. técnicos) pueden ser más resilientes que otros.'],
+      sensibilidad: 'Directa.',
+      falsacion: 'Si en un escenario de degradación el personal efectivo no cae proporcionalmente al índice, la fórmula sobreestima el impacto.'
+    },
+    F3: {
+      nombre: 'Población elegible',
+      meta: {tipo:'Identidad contable'},
+      expresion: 'poblacion_elegible = poblacion_total × (tasa_pobreza / 100)',
+      justificacion: 'Definición estándar de elegibilidad por ingresos.',
+      supuestos: ['Todos los pobres son elegibles.', 'Ningún no-pobre lo es.'],
+      omite: ['Criterios de patrimonio, edad, residencia, composición del hogar.'],
+      sensibilidad: 'Lineal en ambos inputs.',
+      falsacion: 'Si el ratio elegibles/beneficiarios reales en Murcia no es ~10:1, la fórmula no está capturando la realidad.'
+    },
+    F4: {
+      nombre: 'Horas de capacidad mensual',
+      meta: {tipo:'Identidad'},
+      expresion: 'horas_capacidad_mes = num_func_efectivos × horas_por_funcionario_mes',
+      justificacion: 'Capacidad = personas × horas/persona.',
+      supuestos: ['Aditividad perfecta, sin cuellos de botella no humanos (sistemas informáticos, supervisión).'],
+      omite: ['Que la capacidad real puede estar limitada por el sistema informático, no por las personas.'],
+      sensibilidad: 'Lineal.',
+      falsacion: 'Si aumentar funcionarios no aumenta la producción de expedientes en un caso real, la fórmula falla.'
+    },
+    F5: {
+      nombre: 'Capacidad de tramitación mensual',
+      meta: {tipo:'Identidad'},
+      expresion: 'capacidad_tramitacion_mes = horas_capacidad_mes / horas_por_expediente',
+      justificacion: 'Regla de tres.',
+      supuestos: ['Tiempo homogéneo por expediente.'],
+      omite: ['Distribución de complejidades.'],
+      sensibilidad: 'Lineal.',
+      falsacion: 'Si la distribución real de tiempos por expediente tiene alta varianza, el promedio es engañoso.'
+    },
+    F6: {
+      nombre: 'Solicitudes esperadas mensuales',
+      meta: {tipo:'Heurístico'},
+      expresion: 'solicitudes_esperadas_mes = poblacion_elegible / 12',
+      justificacion: 'Se asume que la población elegible se reparte uniformemente a lo largo del año.',
+      supuestos: ['No hay estacionalidad ni picos.'],
+      omite: ['Efectos de convocatorias, plazos, campañas.'],
+      sensibilidad: 'Lineal.',
+      falsacion: 'Si en Murcia hay picos estacionales de solicitudes, la fórmula subestima la saturación en esos meses.'
+    },
+    F7: {
+      nombre: 'Ratio de saturación',
+      meta: {tipo:'Identidad'},
+      expresion: 'ratio_saturacion = solicitudes_esperadas_mes / max(1, capacidad_tramitacion_mes)',
+      justificacion: 'Mide cuántas veces la demanda supera la capacidad.',
+      supuestos: ['Linealidad.'],
+      omite: ['Que el sistema puede priorizar (no FIFO).'],
+      sensibilidad: 'Lineal.',
+      falsacion: 'Si con ratio > 3 el sistema real no colapsa, la fórmula sobreestima el efecto.'
+    },
+    F8: {
+      nombre: 'Factor de canal',
+      meta: {tipo:'Heurístico', forma:'aditivo'},
+      expresion: 'factor_canal = 0\n  + 0.30 si (no telemático Y no presencial)\n  + 0.15 si (solo uno de los dos)\n  + 0.10 adicional si no telemático\n  + (complejidad - 1) × 0.05',
+      justificacion: 'Cada barrera de acceso suma fricción de forma aproximadamente aditiva.',
+      supuestos: ['Las barreras son independientes.'],
+      omite: ['Interacciones no lineales (ej. la falta de canal telemático duele más cuando la complejidad es alta).'],
+      sensibilidad: 'CRÍTICA. Los coeficientes (0,30 / 0,15 / 0,10 / 0,05) son los parámetros más arbitrarios del modelo.',
+      falsacion: 'Comparar NTU entre provincias con y sin canal telemático, controlando por otras variables. Si la diferencia no es ~10 puntos, el parámetro está mal.'
+    },
+    F9: {
+      nombre: 'Factor de saturación',
+      meta: {tipo:'Heurístico', forma:'logarítmico con techo'},
+      expresion: 'factor_saturacion = min(0.35, 0.12 × log10(1 + ratio_saturacion))',
+      justificacion: 'La saturación tiene retornos decrecientes: pasar de ratio 1 a 2 duele mucho, de 10 a 20 duele poco. El techo del 35% refleja que la saturación total no puede por sí sola llevar el NTU al 100% (hay solicitantes que insisten).',
+      supuestos: ['La relación es logarítmica, no lineal.'],
+      omite: ['Umbrales críticos (ej. colapso total por encima de cierto ratio).'],
+      sensibilidad: 'Alta. El coeficiente 0,12 y el techo 0,35 son parámetros clave.',
+      falsacion: 'En un caso real de saturación documentada (ej. colapso del SEPE en pandemia), ¿el NTU subió de forma logarítmica o abrupta?'
+    },
+    F10: {
+      nombre: 'Factor de espera',
+      meta: {tipo:'Heurístico'},
+      expresion: 'factor_espera = min(0.15, (tiempo_medio_tramitacion_dias / 365) × 0.2)',
+      justificacion: 'La espera desincentiva la solicitud. Se asume proporcionalidad con un techo del 15%.',
+      supuestos: ['Linealidad hasta el techo.'],
+      omite: ['Que la espera duele más a quien tiene menos recursos (heterogeneidad).'],
+      sensibilidad: 'Media.',
+      falsacion: 'Si en provincias con tramitación de 15 vs. 90 días el NTU no difiere, la fórmula falla.'
+    },
+    F11: {
+      nombre: 'NTU base ajustada por estado',
+      meta: {tipo:'Heurístico'},
+      expresion: 'ntu_base_ajustada = min(0.95, tasa_ntu_base/100 + (1 - factor_estado) × 0.40)',
+      justificacion: 'La degradación institucional eleva el NTU base (la gente no confía en que el sistema funcione, no solicita).',
+      supuestos: ['El efecto es lineal con el déficit de estado, con techo del 95%.'],
+      omite: ['Que el efecto puede ser no lineal (confianza rota de golpe).'],
+      sensibilidad: 'Alta. El coeficiente 0,40 es arbitrario.',
+      falsacion: 'En un contexto de colapso real, ¿el NTU sube linealmente o de forma abrupta?'
+    },
+    F12: {
+      nombre: 'NTU observada (síntesis)',
+      meta: {tipo:'Heurístico', forma:'aditivo con techo'},
+      expresion: 'ntu_observada = min(0.98, ntu_base_ajustada + factor_canal + factor_saturacion + factor_espera)',
+      justificacion: 'Las cuatro fuentes de fricción se suman.',
+      supuestos: ['Aditividad e independencia.'],
+      omite: ['Interacciones multiplicativas (ej. saturación × complejidad).'],
+      sensibilidad: 'CRÍTICA. Es la fórmula más importante del modelo. Un cambio en cualquier coeficiente mueve el KPI principal.',
+      falsacion: 'El test clave del modelo. Si calibras con Murcia y el resultado no se aproxima al NTU observado (83% para perfiles vulnerables), la fórmula está mal. Si se aproxima pero con provincias held-out no funciona, el modelo no generaliza.'
+    },
+    F13: {
+      nombre: 'Coste anual por beneficiario',
+      meta: {tipo:'Identidad'},
+      expresion: 'coste_anual_por_beneficiario = importe_prestacion_base × meses_medios_percibidos',
+      justificacion: 'Contabilidad básica.',
+      supuestos: ['Importe constante, sin revalorización.'],
+      omite: ['Suplementos por hogar, complementos, ayudas de emergencia.'],
+      sensibilidad: 'Lineal.',
+      falsacion: 'Comparar con el coste medio real por beneficiario/año en Murcia.'
+    },
+    F14: {
+      nombre: 'Beneficiarios por presupuesto',
+      meta: {tipo:'Identidad'},
+      expresion: 'beneficiarios_por_presupuesto = presupuesto / coste_anual_por_beneficiario',
+      justificacion: 'Regla de tres.',
+      supuestos: ['Presupuesto fijo, no reasignable.'],
+      omite: ['Rigideces presupuestarias.'],
+      sensibilidad: 'Lineal.',
+      falsacion: 'Comparar con el número real de beneficiarios que el presupuesto murciano sostiene.'
+    },
+    F15: {
+      nombre: 'Beneficiarios por capacidad',
+      meta: {tipo:'Identidad'},
+      expresion: 'beneficiarios_por_capacidad = capacidad_tramitacion_mes × 12',
+      justificacion: 'Capacidad anual de tramitación.',
+      supuestos: ['No hay acumulación de backlog (los expedientes no resueltos no se arrastran).'],
+      omite: ['Backlog. Este es un fleco importante: un modelo v2 debería modelar el backlog explícitamente.'],
+      sensibilidad: 'Lineal.',
+      falsacion: 'Si en Murcia hay backlog documentado, la fórmula sobreestima la capacidad real.'
+    },
+    F16: {
+      nombre: 'Beneficiarios efectivos (síntesis)',
+      meta: {tipo:'Identidad'},
+      expresion: 'beneficiarios_efectivos = min(potenciales, por_presupuesto, por_capacidad)',
+      justificacion: 'El sistema está limitado por la restricción más activa.',
+      supuestos: ['Las tres restricciones son independientes y la más pequeña determina el resultado.'],
+      omite: ['Interacciones (ej. más presupuesto sin capacidad no ayuda; más capacidad sin presupuesto tampoco).'],
+      sensibilidad: 'La del parámetro más restrictivo en cada punto.',
+      falsacion: 'Es la fórmula que justifica la noción de "restricción activa". Si en todos los casos reales la restricción es siempre la misma, la métrica es trivial y no aporta.'
+    },
+    F17: {
+      nombre: 'Coste administrativo total',
+      meta: {tipo:'Identidad'},
+      expresion: 'coste_administrativo_total = solicitudes_gestionadas_anyo × coste_administrativo_por_expte_eur',
+      justificacion: 'El coste se genera por gestionar solicitudes, no por conceder prestaciones.',
+      supuestos: ['Coste homogéneo por expediente.'],
+      omite: ['Costes de infraestructura, personal no dedicado, sistemas.'],
+      sensibilidad: 'Lineal.',
+      falsacion: 'Comparar con el coste administrativo real de la RBI murciana (si se publicara).'
+    },
+    F18: {
+      nombre: 'Presupuesto ejecutado',
+      meta: {tipo:'Identidad'},
+      expresion: 'presupuesto_ejecutado = beneficiarios_efectivos × coste_anual_por_beneficiario',
+      justificacion: 'Gasto efectivo en prestaciones.',
+      supuestos: ['Coste unitario constante.'],
+      omite: ['Variabilidad en importes por hogar.'],
+      sensibilidad: 'Lineal.',
+      falsacion: 'Comparar con el gasto real ejecutado en Murcia.'
+    },
+    F19: {
+      nombre: 'Índice de fricción',
+      meta: {tipo:'Construcción compuesta', forma:'suma ponderada con techos'},
+      expresion: 'indice_friccion = min(100,\n  NTU×50\n  + min(1, factor_sat×2.5)×30\n  + ((complejidad-1)/4)×20\n)',
+      justificacion: 'Indicador sintético para titular visual.',
+      supuestos: ['La fricción es aditiva.', 'Las ponderaciones 50/30/20 son una decisión de diseño, NO una medición.'],
+      omite: ['Que las tres fuentes pueden ser no lineales.'],
+      sensibilidad: 'Alta a las ponderaciones. Recomendación: hacer análisis de sensibilidad o declarar que es un constructo narrativo.',
+      falsacion: 'Si dos sistemas con el mismo índice de fricción tienen comportamientos muy distintos, el índice no está capturando lo relevante.'
+    },
+    F20: {
+      nombre: 'Absorción',
+      meta: {tipo:'Identidad'},
+      expresion: 'absorcion = presupuesto_ejecutado / presupuesto_total_prestaciones_eur',
+      justificacion: 'Fracción del presupuesto que se ejecuta.',
+      supuestos: ['El presupuesto no ejecutado es señal de fallo de absorción.'],
+      omite: ['Distingue entre infraejecución por falta de demanda y por falta de capacidad.'],
+      sensibilidad: 'Lineal.',
+      falsacion: 'Comparar con la absorción real de la RBI murciana (si se publicara).'
+    }
+  }
+};
+
+/* ============================================================
+   1. CONFIGURACIÓN DE ENTRADAS
+   ============================================================ */
+const INPUTS_CONFIG = [
+  {key:'poblacion_total', group:'Contexto demográfico y económico', label:'Población total', unit:'personas', min:10000, max:5000000, step:10000, default:1500000},
+  {key:'tasa_pobreza', group:'Contexto demográfico y económico', label:'Tasa de pobreza', unit:'%', min:0, max:60, step:0.1, default:22.6},
+  {key:'importe_prestacion_base', group:'Contexto demográfico y económico', label:'Prestación base mensual', unit:'€/mes', min:0, max:2000, step:10, default:480},
+  {key:'meses_medios_percibidos', group:'Contexto demográfico y económico', label:'Meses medios percibidos/año', unit:'meses', min:0.5, max:12, step:0.1, default:3.5},
+  {key:'canal_telematico', group:'Canal de acceso', label:'Canal telemático disponible', type:'checkbox', default:true},
+  {key:'canal_presencial', group:'Canal de acceso', label:'Canal presencial disponible', type:'checkbox', default:true},
+  {key:'complejidad_solicitud', group:'Canal de acceso', label:'Complejidad de la solicitud', unit:'1-5', min:1, max:5, step:1, default:3},
+  {key:'tasa_ntu_base', group:'Canal de acceso', label:'Non-Take-Up estructural base', unit:'%', min:0, max:95, step:1, default:55},
+  {key:'num_funcionarios', group:'Capacidad administrativa', label:'Nº de funcionarios', unit:'personas', min:1, max:5000, step:1, default:100},
+  {key:'horas_por_funcionario_mes', group:'Capacidad administrativa', label:'Horas efectivas/funcionario/mes', unit:'h', min:10, max:200, step:5, default:120},
+  {key:'horas_por_expediente', group:'Capacidad administrativa', label:'Horas por expediente', unit:'h', min:0.5, max:40, step:0.5, default:8},
+  {key:'coste_administrativo_por_expte_eur', group:'Capacidad administrativa', label:'Coste administrativo por expediente', unit:'€', min:0, max:5000, step:10, default:200},
+  {key:'estado_institucional', group:'Capacidad administrativa', label:'Estado institucional (100=normal, 0=colapso)', unit:'%', min:0, max:100, step:1, default:100},
+  {key:'presupuesto_total_prestaciones_eur', group:'Presupuesto y reglas', label:'Presupuesto anual de prestaciones', unit:'€', min:0, max:500000000, step:100000, default:7900000},
+  {key:'tiempo_medio_tramitacion_dias', group:'Presupuesto y reglas', label:'Días medios de tramitación', unit:'días', min:1, max:365, step:1, default:45},
+];
+
+const DEFAULT_INPUTS = {};
+INPUTS_CONFIG.forEach(c => DEFAULT_INPUTS[c.key] = c.default);
+
+const PRESETS = {
+  murcia: {...DEFAULT_INPUTS},
+  ideal: {...DEFAULT_INPUTS, canal_telematico:true, canal_presencial:true, complejidad_solicitud:1,
+    tasa_ntu_base:5, num_funcionarios:2000, horas_por_expediente:2, estado_institucional:100,
+    presupuesto_total_prestaciones_eur:150000000, tiempo_medio_tramitacion_dias:7, coste_administrativo_por_expte_eur:80},
+  colapso: {...DEFAULT_INPUTS, estado_institucional:20, num_funcionarios:40, canal_presencial:false,
+    complejidad_solicitud:5, tasa_ntu_base:70, tiempo_medio_tramitacion_dias:200},
+};
+
+/* ============================================================
+   2. MOTOR DE SIMULACIÓN
+   ============================================================ */
+const MotorSimulacion = {
+  calcular(I) {
+    const factor_estado = I.estado_institucional / 100;
+    const num_func_efectivos = I.num_funcionarios * factor_estado;
+    const poblacion_elegible = I.poblacion_total * (I.tasa_pobreza / 100);
+    const horas_capacidad_mes = num_func_efectivos * I.horas_por_funcionario_mes;
+    const capacidad_tramitacion_mes = horas_capacidad_mes / Math.max(0.1, I.horas_por_expediente);
+    const solicitudes_esperadas_mes = poblacion_elegible / 12;
+    const ratio_saturacion = solicitudes_esperadas_mes / Math.max(1, capacidad_tramitacion_mes);
+    let factor_canal = 0;
+    if (!I.canal_telematico && !I.canal_presencial) factor_canal += 0.30;
+    else if (!I.canal_telematico || !I.canal_presencial) factor_canal += 0.15;
+    if (!I.canal_telematico) factor_canal += 0.10;
+    factor_canal += (I.complejidad_solicitud - 1) * 0.05;
+    const factor_saturacion = Math.min(0.35, 0.12 * Math.log10(1 + ratio_saturacion));
+    const factor_espera = Math.min(0.15, (I.tiempo_medio_tramitacion_dias / 365) * 0.2);
+    const ntu_base_ajustada = Math.min(0.95, (I.tasa_ntu_base / 100) + (1 - factor_estado) * 0.40);
+    const ntu_observada = Math.min(0.98, ntu_base_ajustada + factor_canal + factor_saturacion + factor_espera);
+    const beneficiarios_potenciales = poblacion_elegible * (1 - ntu_observada);
+    const coste_anual_por_beneficiario = I.importe_prestacion_base * I.meses_medios_percibidos;
+    const beneficiarios_por_presupuesto = coste_anual_por_beneficiario > 0 ? I.presupuesto_total_prestaciones_eur / coste_anual_por_beneficiario : 0;
+    const beneficiarios_por_capacidad = capacidad_tramitacion_mes * 12;
+    const min_val = Math.min(beneficiarios_potenciales, beneficiarios_por_presupuesto, beneficiarios_por_capacidad);
+    const beneficiarios_efectivos = Math.max(0, min_val);
+    let restriccion = 'ninguna';
+    if (min_val === beneficiarios_por_presupuesto && min_val < beneficiarios_potenciales && min_val < beneficiarios_por_capacidad) restriccion = 'presupuesto';
+    else if (min_val === beneficiarios_por_capacidad && min_val < beneficiarios_potenciales) restriccion = 'capacidad';
+    else if (min_val === beneficiarios_potenciales) restriccion = 'ntu';
+    const cobertura_efectiva = poblacion_elegible > 0 ? beneficiarios_efectivos / poblacion_elegible : 0;
+    const solicitudes_esperadas_anyo = solicitudes_esperadas_mes * 12;
+    const solicitudes_gestionadas_anyo = Math.min(solicitudes_esperadas_anyo, capacidad_tramitacion_mes * 12);
+    const coste_administrativo_total = solicitudes_gestionadas_anyo * I.coste_administrativo_por_expte_eur;
+    const coste_admin_por_beneficiario = coste_administrativo_total / Math.max(1, beneficiarios_efectivos);
+    const presupuesto_ejecutado = beneficiarios_efectivos * coste_anual_por_beneficiario;
+    const absorcion = I.presupuesto_total_prestaciones_eur > 0 ? presupuesto_ejecutado / I.presupuesto_total_prestaciones_eur : 0;
+    const indice_friccion = Math.min(100, ntu_observada * 50 + Math.min(1, factor_saturacion * 2.5) * 30 + ((I.complejidad_solicitud - 1) / 4) * 20);
+    return {
+      poblacion_elegible, num_func_efectivos, capacidad_tramitacion_mes, solicitudes_esperadas_mes, ratio_saturacion,
+      factor_canal, factor_saturacion, factor_espera, ntu_observada, beneficiarios_potenciales,
+      beneficiarios_por_presupuesto, beneficiarios_por_capacidad, beneficiarios_efectivos, cobertura_efectiva,
+      restriccion, coste_administrativo_total, coste_admin_por_beneficiario, presupuesto_ejecutado, absorcion,
+      indice_friccion, coste_anual_por_beneficiario, solicitudes_gestionadas_anyo
+    };
+  }
+};
+
+/* ============================================================
+   3. ESTADO GLOBAL
+   ============================================================ */
+let inputsActuales = {...DEFAULT_INPUTS};
+let outputsActuales = null;
+let snapshots = cargarSnapshots();
+const charts = {};
+let drawerState = {tab: 'entradas', item: null, search: ''};
+
+/* ============================================================
+   4. CONSTRUCCIÓN DE LA UI DE ENTRADAS
+   ============================================================ */
+function construirInputs() {
+  const cont = document.getElementById('inputs-container');
+  cont.innerHTML = '';
+  const grupos = {};
+  INPUTS_CONFIG.forEach(c => { if (!grupos[c.group]) grupos[c.group] = []; grupos[c.group].push(c); });
+
+  Object.entries(grupos).forEach(([nombre, items]) => {
+    const div = document.createElement('div');
+    div.className = 'input-group';
+    const titulo = document.createElement('div');
+    titulo.className = 'input-group-title';
+    titulo.textContent = nombre;
+    div.appendChild(titulo);
+
+    items.forEach(cfg => {
+      if (cfg.type === 'checkbox') {
+        const lbl = document.createElement('label');
+        lbl.className = 'checkbox-row';
+        lbl.innerHTML = `<input type="checkbox" id="in-${cfg.key}" ${DEFAULT_INPUTS[cfg.key] ? 'checked' : ''}>
+          <span>${cfg.label}<span class="ficha-btn" onclick="event.preventDefault(); event.stopPropagation(); abrirFicha('${cfg.key}')" title="Ver ficha de ${cfg.key}">?</span></span>`;
+        lbl.querySelector('input').addEventListener('change', () => render());
+        div.appendChild(lbl);
+      } else {
+        const row = document.createElement('div');
+        row.className = 'input-row';
+        row.innerHTML = `
+          <div class="input-header">
+            <label for="in-${cfg.key}">${cfg.label}<span class="ficha-btn" onclick="event.preventDefault(); event.stopPropagation(); abrirFicha('${cfg.key}')" title="Ver ficha de ${cfg.key}">?</span></label>
+            <div class="input-value">
+              <input type="number" id="in-${cfg.key}" min="${cfg.min}" max="${cfg.max}" step="${cfg.step}" value="${DEFAULT_INPUTS[cfg.key]}">
+              <span class="unit">${cfg.unit}</span>
+            </div>
+          </div>
+          <input type="range" id="sl-${cfg.key}" min="${cfg.min}" max="${cfg.max}" step="${cfg.step}" value="${DEFAULT_INPUTS[cfg.key]}">`;
+        const num = row.querySelector(`#in-${cfg.key}`);
+        const sl = row.querySelector(`#sl-${cfg.key}`);
+        num.addEventListener('input', () => { sl.value = num.value; render(); });
+        sl.addEventListener('input', () => { num.value = sl.value; render(); });
+        div.appendChild(row);
+      }
+    });
+    cont.appendChild(div);
+  });
+}
+
+function leerInputs() {
+  const I = {};
+  INPUTS_CONFIG.forEach(cfg => {
+    const el = document.getElementById('in-' + cfg.key);
+    if (!el) return;
+    I[cfg.key] = cfg.type === 'checkbox' ? el.checked : parseFloat(el.value);
+  });
+  return I;
+}
+
+function aplicarInputsEnUI(I) {
+  INPUTS_CONFIG.forEach(cfg => {
+    const el = document.getElementById('in-' + cfg.key);
+    if (!el) return;
+    if (cfg.type === 'checkbox') el.checked = I[cfg.key];
+    else { el.value = I[cfg.key]; document.getElementById('sl-' + cfg.key).value = I[cfg.key]; }
+  });
+  render();
+}
+
+function aplicarPreset(nombre) { aplicarInputsEnUI({...PRESETS[nombre]}); }
+
+/* ============================================================
+   5. RENDER DE SALIDAS
+   ============================================================ */
+function colorClase(valor, bueno, malo, mayorEsMejor) {
+  if (mayorEsMejor) { if (valor >= bueno) return 'good'; if (valor >= malo) return 'warn'; return 'bad'; }
+  else { if (valor <= bueno) return 'good'; if (valor <= malo) return 'warn'; return 'bad'; }
+}
+function fmtNum(n, dec = 0) { if (n === undefined || n === null || isNaN(n)) return '—'; return n.toLocaleString('es-ES', {minimumFractionDigits: dec, maximumFractionDigits: dec}); }
+function fmtEur(n) { return fmtNum(n, 0) + ' €'; }
+function fmtPct(n, dec = 1) { return fmtNum(n * 100, dec) + ' %'; }
+
+function renderKPIs(O) {
+  const kpis = [
+    { label:'Beneficiarios efectivos', value: fmtNum(O.beneficiarios_efectivos), sub:`de ${fmtNum(O.poblacion_elegible)} elegibles`, cls:'neutral', fichaKey:'beneficiarios_efectivos' },
+    { label:'Cobertura efectiva', value: fmtPct(O.cobertura_efectiva), sub:'de la población elegible', cls: colorClase(O.cobertura_efectiva, 0.20, 0.05, true), fichaKey:'cobertura_efectiva' },
+    { label:'NTU observada', value: fmtPct(O.ntu_observada), sub:'non-take-up (menor es mejor)', cls: colorClase(O.ntu_observada, 0.30, 0.60, false), fichaKey:'ntu_observada' },
+    { label:'Coste admin / beneficiario', value: fmtEur(O.coste_admin_por_beneficiario), sub:'coste de gestionar 1 beneficiario', cls: colorClase(O.coste_admin_por_beneficiario, 300, 800, false), fichaKey:'coste_admin_por_beneficiario' },
+    { label:'Índice de fricción', value: fmtNum(O.indice_friccion, 0) + '/100', sub:'NTU + saturación + complejidad', cls: colorClase(O.indice_friccion, 35, 60, false), fichaKey:'indice_friccion' },
+    { label:'Absorción presupuestaria', value: fmtPct(O.absorcion), sub:'ejecutado / asignado', cls: colorClase(O.absorcion, 0.85, 0.60, true), fichaKey:'absorcion' },
+  ];
+  document.getElementById('kpi-grid').innerHTML = kpis.map(k => `
+    <div class="kpi ${k.cls} clickable" onclick="abrirFicha('${k.fichaKey}')" title="Ver ficha de ${k.fichaKey}">
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-value">${k.value}</div>
+      <div class="kpi-sub">${k.sub}</div>
+    </div>`).join('');
+  const badge = document.getElementById('binding-badge');
+  const nombres = {presupuesto:'Presupuesto', capacidad:'Capacidad administrativa', ntu:'Non-Take-Up (NTU)', ninguna:'Sin restricción activa'};
+  badge.className = 'binding-badge ' + O.restriccion;
+  badge.textContent = '🔒 Restricción activa: ' + nombres[O.restriccion];
+}
+
+function renderGraficas(I, O) {
+  const dEmbudo = [O.poblacion_elegible, O.beneficiarios_potenciales, O.beneficiarios_efectivos];
+  if (!charts.embudo) {
+    charts.embudo = new Chart(document.getElementById('chart-embudo'), {
+      type: 'bar',
+      data: { labels: ['Elegibles', 'Potenciales (post-NTU)', 'Efectivos'],
+        datasets: [{ data: dEmbudo, backgroundColor: ['#94a3b8', '#f59e0b', '#16a34a'], borderRadius: 6 }] },
+      options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => fmtNum(ctx.parsed.x) + ' personas' } } },
+        scales: { x: { beginAtZero: true, ticks: { callback: v => fmtNum(v) } } } }
+    });
+  } else { charts.embudo.data.datasets[0].data = dEmbudo; charts.embudo.update('none'); }
+
+  const dPres = [I.presupuesto_total_prestaciones_eur, O.presupuesto_ejecutado, O.coste_administrativo_total];
+  if (!charts.presupuesto) {
+    charts.presupuesto = new Chart(document.getElementById('chart-presupuesto'), {
+      type: 'bar',
+      data: { labels: ['Asignado', 'Ejecutado', 'Coste admin.'],
+        datasets: [{ data: dPres, backgroundColor: ['#2563eb', '#16a34a', '#f59e0b'], borderRadius: 6 }] },
+      options: { responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => fmtEur(ctx.parsed.y) } } },
+        scales: { y: { beginAtZero: true, ticks: { callback: v => (v/1e6).toFixed(1) + 'M' } } } }
+    });
+  } else { charts.presupuesto.data.datasets[0].data = dPres; charts.presupuesto.update('none'); }
+
+  const dNtu = [O.cobertura_efectiva * 100, O.ntu_observada * 100];
+  if (!charts.ntu) {
+    charts.ntu = new Chart(document.getElementById('chart-ntu'), {
+      type: 'doughnut',
+      data: { labels: ['Cobertura efectiva', 'Non-Take-Up'],
+        datasets: [{ data: dNtu, backgroundColor: ['#16a34a', '#dc2626'], borderWidth: 2, borderColor: '#fff' }] },
+      options: { responsive: true, maintainAspectRatio: false, cutout: '60%',
+        plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } },
+          tooltip: { callbacks: { label: ctx => ctx.label + ': ' + ctx.parsed.toFixed(1) + ' %' } } } }
+    });
+  } else { charts.ntu.data.datasets[0].data = dNtu; charts.ntu.update('none'); }
+
+  const funcs = [5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000];
+  const ntuSens = [], benSens = [];
+  funcs.forEach(n => {
+    const O2 = MotorSimulacion.calcular({...I, num_funcionarios: n});
+    ntuSens.push(+(O2.ntu_observada * 100).toFixed(1));
+    benSens.push(Math.round(O2.beneficiarios_efectivos));
+  });
+  if (!charts.sensibilidad) {
+    charts.sensibilidad = new Chart(document.getElementById('chart-sensibilidad'), {
+      type: 'line',
+      data: { labels: funcs, datasets: [
+        { label: 'NTU (%)', data: ntuSens, yAxisID: 'y', borderColor: '#dc2626', backgroundColor: 'rgba(220,38,38,.08)', fill: true, tension: .3, pointRadius: 2 },
+        { label: 'Beneficiarios', data: benSens, yAxisID: 'y1', borderColor: '#16a34a', backgroundColor: 'rgba(22,163,74,.08)', fill: false, tension: .3, pointRadius: 2 } ] },
+      options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+        plugins: { legend: { labels: { font: { size: 10 }, boxWidth: 10 } } },
+        scales: {
+          x: { type: 'logarithmic', title: { display: true, text: 'Nº funcionarios', font: { size: 10 } }, ticks: { font: { size: 9 } } },
+          y: { position: 'left', min: 0, max: 100, title: { display: true, text: 'NTU (%)', color: '#dc2626', font: { size: 10 } }, ticks: { font: { size: 9 }, color: '#dc2626' } },
+          y1: { position: 'right', min: 0, title: { display: true, text: 'Beneficiarios', color: '#16a34a', font: { size: 10 } }, grid: { drawOnChartArea: false }, ticks: { font: { size: 9 }, color: '#16a34a', callback: v => fmtNum(v) } } } }
+    });
+  } else {
+    charts.sensibilidad.data.labels = funcs;
+    charts.sensibilidad.data.datasets[0].data = ntuSens;
+    charts.sensibilidad.data.datasets[1].data = benSens;
+    charts.sensibilidad.update('none');
+  }
+}
+
+function render() {
+  inputsActuales = leerInputs();
+  outputsActuales = MotorSimulacion.calcular(inputsActuales);
+  renderKPIs(outputsActuales);
+  renderGraficas(inputsActuales, outputsActuales);
+}
+
+/* ============================================================
+   6. SNAPSHOTS
+   ============================================================ */
+function cargarSnapshots() { try { return JSON.parse(localStorage.getItem('sim_rentas_snapshots') || '[]'); } catch { return []; } }
+function persistirSnapshots() { try { localStorage.setItem('sim_rentas_snapshots', JSON.stringify(snapshots)); } catch {} }
+function guardarSnapshot() {
+  const snap = { id: Date.now(), ts: new Date().toISOString(), inputs: {...inputsActuales}, outputs: {...outputsActuales} };
+  snapshots.unshift(snap);
+  if (snapshots.length > 200) snapshots.length = 200;
+  persistirSnapshots();
+  renderTablaSnapshots();
+  const btn = event?.target;
+  if (btn) { const t = btn.textContent; btn.textContent = '✓ Guardada'; setTimeout(()=>btn.textContent=t, 900); }
+}
+function borrarSnapshot(id) { snapshots = snapshots.filter(s => s.id !== id); persistirSnapshots(); renderTablaSnapshots(); }
+function borrarTodas() { if (!confirm('¿Borrar todas las instantáneas guardadas?')) return; snapshots = []; persistirSnapshots(); renderTablaSnapshots(); }
+
+function renderTablaSnapshots() {
+  const tbody = document.querySelector('#snapshots-table tbody');
+  const thead = document.querySelector('#snapshots-table thead');
+  document.getElementById('snap-count').textContent = `(${snapshots.length})`;
+  thead.innerHTML = `<tr><th>#</th><th>Hora</th><th>Población</th><th>Pobreza</th><th>Funcs.</th><th>Estado</th><th>NTU</th><th>Benef.</th><th>Cobertura</th><th>Coste adm./benef.</th><th>Fricción</th><th>Restricción</th><th></th></tr>`;
+  if (snapshots.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="13" class="empty-state">Aún no hay instantáneas. Ajusta las variables y pulsa <strong>📸 Guardar instantánea</strong>.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = snapshots.map((s, i) => {
+    const d = new Date(s.ts);
+    const hora = d.toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+    const fecha = d.toLocaleDateString('es-ES', {day:'2-digit', month:'2-digit'});
+    const I = s.inputs, O = s.outputs;
+    return `<tr>
+      <td>${snapshots.length - i}</td><td title="${s.ts}">${fecha} ${hora}</td>
+      <td>${fmtNum(I.poblacion_total)}</td><td>${fmtNum(I.tasa_pobreza,1)} %</td>
+      <td>${fmtNum(I.num_funcionarios)}</td><td>${fmtNum(I.estado_institucional)} %</td>
+      <td>${fmtPct(O.ntu_observada)}</td><td>${fmtNum(O.beneficiarios_efectivos)}</td>
+      <td>${fmtPct(O.cobertura_efectiva)}</td><td>${fmtEur(O.coste_admin_por_beneficiario)}</td>
+      <td>${fmtNum(O.indice_friccion,0)}</td><td>${O.restriccion}</td>
+      <td><button class="del-btn" onclick="borrarSnapshot(${s.id})" title="Eliminar">✕</button></td>
+    </tr>`;
+  }).join('');
+}
+
+/* ============================================================
+   7. EXPORTACIÓN
+   ============================================================ */
+const CSV_COLUMNS = [
+  ['ts','Timestamp ISO'],['fecha','Fecha'],['poblacion_total','Población total'],['tasa_pobreza','Tasa pobreza (%)'],
+  ['importe_prestacion_base','Prestación base (€/mes)'],['meses_medios_percibidos','Meses medios/año'],
+  ['canal_telematico','Canal telemático'],['canal_presencial','Canal presencial'],['complejidad_solicitud','Complejidad (1-5)'],
+  ['tasa_ntu_base','NTU base (%)'],['num_funcionarios','Funcionarios'],['horas_por_funcionario_mes','Horas/func/mes'],
+  ['horas_por_expediente','Horas/expediente'],['coste_administrativo_por_expte_eur','Coste admin/exp (€)'],
+  ['estado_institucional','Estado institucional (%)'],['presupuesto_total_prestaciones_eur','Presupuesto (€)'],
+  ['tiempo_medio_tramitacion_dias','Días tramitación'],['poblacion_elegible','Población elegible'],
+  ['ntu_observada','NTU observada (%)'],['beneficiarios_efectivos','Beneficiarios efectivos'],
+  ['cobertura_efectiva','Cobertura efectiva (%)'],['coste_admin_por_beneficiario','Coste admin/benef (€)'],
+  ['indice_friccion','Índice fricción (0-100)'],['absorcion','Absorción presupuestaria (%)'],
+  ['restriccion','Restricción activa'],['presupuesto_ejecutado','Presupuesto ejecutado (€)'],
+  ['coste_administrativo_total','Coste administrativo total (€)'],
+];
+function valorParaCSV(snap, key) {
+  if (key === 'ts') return snap.ts;
+  if (key === 'fecha') return new Date(snap.ts).toLocaleString('es-ES');
+  if (snap.inputs[key] !== undefined) {
+    const v = snap.inputs[key];
+    if (typeof v === 'boolean') return v ? 'Sí' : 'No';
+    if (['tasa_pobreza','tasa_ntu_base','estado_institucional'].includes(key)) return v;
+    if (key === 'ntu_observada' || key === 'cobertura_efectiva' || key === 'absorcion') return (v*100).toFixed(2);
+    return v;
+  }
+  if (snap.outputs[key] !== undefined) {
+    const v = snap.outputs[key];
+    if (key === 'ntu_observada' || key === 'cobertura_efectiva' || key === 'absorcion') return (v*100).toFixed(2);
+    return typeof v === 'number' ? +v.toFixed(2) : v;
+  }
+  return '';
+}
+function descargarCSV() {
+  if (snapshots.length === 0) { alert('No hay instantáneas para descargar.'); return; }
+  const sep = ';';
+  const headers = CSV_COLUMNS.map(c => c[1]).join(sep);
+  const rows = snapshots.map(s => CSV_COLUMNS.map(([key]) => {
+    let v = valorParaCSV(s, key);
+    if (typeof v === 'string' && (v.includes(sep) || v.includes('\n') || v.includes('"'))) v = '"' + v.replace(/"/g, '""') + '"';
+    return v;
+  }).join(sep));
+  const csv = '\uFEFF' + headers + '\n' + rows.join('\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const ts = new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
+  a.href = url; a.download = `simulacion_rentas_${ts}.csv`; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+function copiarTablaHTML() {
+  if (snapshots.length === 0) { alert('No hay instantáneas.'); return; }
+  const headers = CSV_COLUMNS.map(c => c[1]);
+  let html = '<table border="1" cellpadding="4" style="border-collapse:collapse;font-family:Arial;font-size:12px;">';
+  html += '<thead><tr>' + headers.map(h => `<th style="background:#f1f5f9;">${h}</th>`).join('') + '</tr></thead><tbody>';
+  snapshots.forEach(s => { html += '<tr>' + CSV_COLUMNS.map(([key]) => `<td>${valorParaCSV(s, key)}</td>`).join('') + '</tr>'; });
+  html += '</tbody></table>';
+  navigator.clipboard.writeText(html).then(() => alert('Tabla HTML copiada al portapapeles. Pégala en Word, Excel o un email.')).catch(() => {
+    const w = window.open('', '_blank'); w.document.write(html); w.document.execCommand('selectAll');
+  });
+}
+
+/* ============================================================
+   8. DRAWER DE DOCUMENTACIÓN
+   ============================================================ */
+function abrirDrawer(tab, item) {
+  if (tab) drawerState.tab = tab;
+  if (item !== undefined) drawerState.item = item;
+  document.getElementById('drawer').classList.add('open');
+  document.getElementById('drawer-overlay').classList.add('open');
+  document.querySelectorAll('.drawer-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === drawerState.tab));
+  document.getElementById('drawer-search').value = drawerState.search;
+  renderDrawerList();
+  renderDrawerContent();
+}
+function cerrarDrawer() {
+  document.getElementById('drawer').classList.remove('open');
+  document.getElementById('drawer-overlay').classList.remove('open');
+}
+function abrirFicha(key) {
+  if (FICHAS.entradas[key]) abrirDrawer('entradas', key);
+  else if (FICHAS.salidas[key]) abrirDrawer('salidas', key);
+  else if (FICHAS.formulas[key]) abrirDrawer('formulas', key);
+}
+function onDrawerSearch(q) { drawerState.search = q.toLowerCase(); renderDrawerList(); }
+function seleccionarFicha(key) { drawerState.item = key; renderDrawerList(); renderDrawerContent(); }
+
+function renderDrawerList() {
+  const list = document.getElementById('drawer-list');
+  const items = FICHAS[drawerState.tab] || {};
+  const entries = Object.entries(items).filter(([k, f]) => {
+    if (!drawerState.search) return true;
+    return k.toLowerCase().includes(drawerState.search) || (f.nombre||'').toLowerCase().includes(drawerState.search);
+  });
+  if (entries.length === 0) { list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);font-size:12px;">Sin resultados</div>'; return; }
+  list.innerHTML = entries.map(([k, f]) =>
+    `<div class="drawer-list-item ${k === drawerState.item ? 'active' : ''}" onclick="seleccionarFicha('${k}')">${f.nombre || k}</div>`
+  ).join('');
+}
+
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function renderDrawerContent() {
+  const cont = document.getElementById('drawer-content');
+  if (!drawerState.item) { cont.innerHTML = '<div class="ficha-empty">Selecciona un elemento de la lista para ver su ficha.</div>'; return; }
+  const f = FICHAS[drawerState.tab]?.[drawerState.item];
+  if (!f) { cont.innerHTML = '<div class="ficha-empty">No encontrada.</div>'; return; }
+
+  let html = `<h3>${esc(f.nombre || drawerState.item)} <code>${esc(drawerState.item)}</code></h3>`;
+  if (f.meta) {
+    html += '<div class="ficha-meta">';
+    for (const [k, v] of Object.entries(f.meta)) html += `<span><strong>${esc(k)}:</strong> ${esc(v)}</span>`;
+    html += '</div>';
+  }
+  if (drawerState.tab === 'formulas') {
+    if (f.expresion) html += `<div class="ficha-expresion">${esc(f.expresion)}</div>`;
+    if (f.justificacion) html += `<div class="ficha-section"><h4>Justificación</h4><p>${esc(f.justificacion)}</p></div>`;
+    if (f.supuestos) html += `<div class="ficha-section"><h4>Supuestos</h4><ul>${f.supuestos.map(s=>`<li>${esc(s)}</li>`).join('')}</ul></div>`;
+    if (f.omite) html += `<div class="ficha-section"><h4>Qué omite</h4><ul>${f.omite.map(s=>`<li>${esc(s)}</li>`).join('')}</ul></div>`;
+    if (f.sensibilidad) html += `<div class="ficha-section"><h4>Sensibilidad</h4><p>${esc(f.sensibilidad)}</p></div>`;
+    if (f.falsacion) html += `<div class="ficha-section"><h4>Test de falsación</h4><p>${esc(f.falsacion)}</p></div>`;
+  } else {
+    if (f.conceptual) html += `<div class="ficha-section"><h4>Definición conceptual</h4><p>${esc(f.conceptual)}</p></div>`;
+    if (f.operativa) html += `<div class="ficha-section"><h4>Definición operativa</h4><p>${esc(f.operativa)}</p></div>`;
+    if (f.justificacion) html += `<div class="ficha-section"><h4>Justificación del valor por defecto</h4><p>${esc(f.justificacion)}</p></div>`;
+    if (f.limitaciones) html += `<div class="ficha-section"><h4>Limitaciones conocidas</h4><p>${esc(f.limitaciones)}</p></div>`;
+    if (f.falsacion) html += `<div class="ficha-section"><h4>Test de falsación</h4><p>${esc(f.falsacion)}</p></div>`;
+    if (f.equivalente) html += `<div class="ficha-section"><h4>Equivalente en modelo descentralizado</h4><p>${esc(f.equivalente)}</p></div>`;
+  }
+  cont.innerHTML = html;
+}
+
+/* Tabs del drawer */
+document.querySelectorAll('.drawer-tab').forEach(tab => {
+  tab.addEventListener('click', () => { drawerState.tab = tab.dataset.tab; drawerState.item = null; drawerState.search = ''; document.getElementById('drawer-search').value = ''; document.querySelectorAll('.drawer-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === drawerState.tab)); renderDrawerList(); renderDrawerContent(); });
+});
+
+/* Tecla ESC cierra el drawer */
+document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarDrawer(); });
+
+/* ============================================================
+   9. INICIALIZACIÓN
+   ============================================================ */
+document.addEventListener('DOMContentLoaded', () => {
+  construirInputs();
+  aplicarInputsEnUI({...DEFAULT_INPUTS});
+  renderTablaSnapshots();
+});
+</script>
+</body>
+</html>
